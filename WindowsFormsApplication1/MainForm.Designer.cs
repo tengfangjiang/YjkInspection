@@ -1,6 +1,6 @@
-﻿namespace WindowsFormsApplication1
+﻿namespace YjkInspectClient
 {
-    partial class Form1
+    partial class MainForm
     {
         /// <summary>
         /// 必需的设计器变量。
@@ -45,6 +45,7 @@
             this.tb_sex = new System.Windows.Forms.TextBox();
             this.tb_serial = new System.Windows.Forms.TextBox();
             this.tb_card_id = new System.Windows.Forms.TextBox();
+            this.btn_read = new System.Windows.Forms.Button();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -83,7 +84,7 @@
             // 
             // btn_print
             // 
-            this.btn_print.Location = new System.Drawing.Point(32, 151);
+            this.btn_print.Location = new System.Drawing.Point(903, 269);
             this.btn_print.Name = "btn_print";
             this.btn_print.Size = new System.Drawing.Size(75, 23);
             this.btn_print.TabIndex = 3;
@@ -195,11 +196,21 @@
             this.tb_card_id.Size = new System.Drawing.Size(359, 21);
             this.tb_card_id.TabIndex = 11;
             // 
-            // Form1
+            // btn_read
+            // 
+            this.btn_read.Location = new System.Drawing.Point(561, 269);
+            this.btn_read.Name = "btn_read";
+            this.btn_read.Size = new System.Drawing.Size(75, 23);
+            this.btn_read.TabIndex = 12;
+            this.btn_read.Text = "读取";
+            this.btn_read.UseVisualStyleBackColor = true;
+            // 
+            // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(990, 494);
+            this.Controls.Add(this.btn_read);
             this.Controls.Add(this.tb_card_id);
             this.Controls.Add(this.tb_serial);
             this.Controls.Add(this.tb_sex);
@@ -216,8 +227,8 @@
             this.Controls.Add(this.button3);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.button1);
-            this.Name = "Form1";
-            this.Text = "Form1";
+            this.Name = "MainForm";
+            this.Text = "益健康检验客户端";
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
             this.ResumeLayout(false);
@@ -244,6 +255,7 @@
         private System.Windows.Forms.TextBox tb_sex;
         private System.Windows.Forms.TextBox tb_serial;
         private System.Windows.Forms.TextBox tb_card_id;
+        private System.Windows.Forms.Button btn_read;
     }
 }
 

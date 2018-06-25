@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // 有关程序集的常规信息通过以下
 // 特性集控制。更改这些特性值可修改
 // 与程序集关联的信息。
-[assembly: AssemblyTitle("WindowsFormsApplication1")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("益健康检验客户端")]
+[assembly: AssemblyDescription("益健康检验客户端")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("China")]
-[assembly: AssemblyProduct("WindowsFormsApplication1")]
-[assembly: AssemblyCopyright("Copyright © China 2014")]
+[assembly: AssemblyCompany("www.yjk2020.com")]
+[assembly: AssemblyProduct("YjkInspectClient")]
+[assembly: AssemblyCopyright("Copyright © 南京益健康信息技术有限公司 2018")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
