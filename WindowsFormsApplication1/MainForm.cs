@@ -7,14 +7,31 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
+using System.Timers;
+using System.IO;
 
 namespace YjkInspectClient
 {
     public partial class MainForm : Form
     {
-        bool isClose = false;
-        int iRetUSB = 0, iRetCOM = 0;
-        PeopleInfo people = new PeopleInfo();
+        private bool isClose = true;
+        private int iRetUSB = 0, iRetCOM = 0;
+        private PeopleInfo people = new PeopleInfo();
+        private System.Timers.Timer _readCardInfoTimer; // 定时处理任务
+        //更新窗体委托
+        private loghandler loghandlers;
+
+        private const int TYPE_STATUS_LABEL = 1; // 更新状态栏
+        private const int TYPE_FILL_DATA = 2; // 更新数据填充
+        private const int TYPE_WRITE_HISTORY = 3; // 更新历史纪录（写文件）
+        private const int TYPE_WRITE_ID = 4; // 更新 当前 ID (写文件）
+
+        private const string HISTORY_DIR = "HistoryRecord";
+
+        private int serialId = 1;
+
+        public delegate void loghandler(string Str, int msgType);
+
         public MainForm()
         {
             InitializeComponent();
@@ -24,7 +41,7 @@ namespace YjkInspectClient
         private void button1_Click(object sender, EventArgs e)
         {
             TSCSDK.openport("Gprinter  GP-3120TN");                                           //Open specified printer driver
-                                                                                       // setup("35", "25", "4", "8", "0", "1", "0");                          　　 //Setup the media size and sensor type info            
+                                                                                              // setup("35", "25", "4", "8", "0", "1", "0");                          　　 //Setup the media size and sensor type info            
             TSCSDK.sendcommand("SIZE 30mm,37mm");
             TSCSDK.clearbuffer();
             TSCSDK.sendcommand("SET PEEL ON ");
@@ -82,9 +99,11 @@ namespace YjkInspectClient
         private void btn_print_Click(object sender, EventArgs e)
         {
             people.addTime = Convert.ToString(DateTime.Now);
-            printBoxCode(people);
+            // printBoxCode(people);
             addListItem(people);
-            // printBoxCode("李四", "34062119890615456x", "张三依依", "340621********198x", "60", "男", "201806190101");
+            onevent("", TYPE_WRITE_HISTORY);
+            serialId++;
+            people.serialId = Convert.ToString(serialId);
         }
 
         private void addListItem(PeopleInfo toAdd)
@@ -92,9 +111,27 @@ namespace YjkInspectClient
             lv_print_history.BeginUpdate();
             ListViewItem lvi = new ListViewItem();
             lvi.Text = toAdd.name;
-            lvi.SubItems.Add(people.serialId);
-            lvi.SubItems.Add(people.addTime);
+            lvi.SubItems.Add(toAdd.serialId);
+            lvi.SubItems.Add(toAdd.addTime);
+            lvi.Tag = toAdd.Clone();
             lv_print_history.Items.Add(lvi);
+            lv_print_history.EndUpdate();
+        }
+
+        private void addListItem(List<PeopleInfo> toAdd)
+        {
+            lv_print_history.BeginUpdate();
+            lv_print_history.Items.Clear();
+            foreach (PeopleInfo item in toAdd)
+            {
+                ListViewItem lvi = new ListViewItem();
+                lvi.Text = item.name;
+                lvi.SubItems.Add(item.serialId);
+                lvi.SubItems.Add(item.addTime);
+                lvi.Tag = item.Clone();
+                lv_print_history.Items.Add(lvi);
+            }
+            
             lv_print_history.EndUpdate();
         }
 
@@ -117,12 +154,37 @@ namespace YjkInspectClient
             TSCSDK.printerfont("20", "260", "TSS24.BF2", "0", "1", "1", "" + idCard);
             TSCSDK.printlabel("1", "1");                                                    //Print labels
             TSCSDK.closeport();
-            toolStripStatusLabel1.Text = "正在打印...";
+            toolStripStatusLabel1.Text = "打印";
         }
 
         private void printBoxCode(PeopleInfo printPeople)
         {
             printBoxCode(printPeople.name, printPeople.cardId, printPeople.name, printPeople.cardId, printPeople.age, printPeople.sex, printPeople.serialId);
+        }
+
+        /// <summary>
+        /// 初始化当天记录和ID
+        /// </summary>
+        private void initRecordAndId(string fileName)
+        {
+            bool isToday = string.IsNullOrEmpty(fileName);
+            string historyPath = isToday ? HISTORY_DIR + "/" + DateTime.Now.ToString("yy-MM-dd") + "_history.txt" : HISTORY_DIR + "/" + fileName;
+            if (File.Exists(historyPath))
+            {
+                List<PeopleInfo> infos = new List<PeopleInfo>();
+                StreamReader sr = new StreamReader(historyPath, Encoding.UTF8);
+                String line;
+                while ((line = sr.ReadLine()) != null)
+                {
+                    infos.Add(new PeopleInfo(line));
+                }
+                if (isToday && !string.IsNullOrEmpty(infos.Last().serialId))
+                {
+                    serialId = Convert.ToInt32(infos.Last().serialId);
+                }
+
+                addListItem(infos);
+            }
         }
 
         /// <summary>
@@ -155,6 +217,7 @@ namespace YjkInspectClient
 
                 if ((iRetCOM == 1) || (iRetUSB == 1))
                 {
+                    isClose = false;
                     this.toolStripStatusLabel1.Text = "CVRSDK 初始化成功！";
                 }
                 else
@@ -167,7 +230,7 @@ namespace YjkInspectClient
                 MessageBox.Show(ex.ToString());
             }
         }
-        
+
         /// <summary>
         /// 读取数据
         /// </summary>
@@ -184,28 +247,27 @@ namespace YjkInspectClient
                         int readContent = CVRSDK.CVR_Read_Content(4);
                         if (readContent == 1)
                         {
-                            this.toolStripStatusLabel1.Text = "读卡操作成功！";
-                            FillData(people);
-                            initViewByPeopleInfo(people);
+                            onevent("读卡操作成功", TYPE_STATUS_LABEL);
+                            onevent("", TYPE_FILL_DATA);
                         }
                         else
                         {
-                            this.toolStripStatusLabel1.Text = "读卡操作失败！";
+                            onevent("读卡操作失败", TYPE_STATUS_LABEL);
                         }
                     }
                     else
                     {
-                        MessageBox.Show("未放卡或卡片放置不正确");
+                        onevent("未放卡或卡片放置不正确", TYPE_STATUS_LABEL);
                     }
                 }
                 else
                 {
-                    MessageBox.Show("初始化失败！");
+                    onevent("初始化失败", TYPE_STATUS_LABEL);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.ToString());
+                onevent(ex.ToString(), TYPE_STATUS_LABEL);
             }
         }
 
@@ -217,7 +279,6 @@ namespace YjkInspectClient
             toSavePeople.clearInfo();
             try
             {
-                pb_head.ImageLocation = Application.StartupPath + "\\zp.bmp";
                 byte[] name = new byte[30];
                 int length = 30;
                 CVRSDK.GetPeopleName(ref name[0], ref length);
@@ -253,7 +314,7 @@ namespace YjkInspectClient
                 toSavePeople.age = Convert.ToString(GetAgeByBirthdate(Convert.ToDateTime(Encoding.GetEncoding("GB2312").GetString(birthday).Replace("\0", "").Trim())));
                 toSavePeople.cardId = Encoding.GetEncoding("GB2312").GetString(number).Replace("\0", "").Trim();
                 toSavePeople.name = Encoding.GetEncoding("GB2312").GetString(name).Replace("\0", "").Trim();
-                toSavePeople.serialId = DateTime.Now.ToString("yyyyMMddHHmm");
+                toSavePeople.serialId = Convert.ToString(serialId);// DateTime.Now.ToString("yyyyMMddHHmm");
             }
             catch (Exception ex)
             {
@@ -261,47 +322,42 @@ namespace YjkInspectClient
             }
         }
 
-        private void initViewByPeopleInfo(PeopleInfo info)
-        {
-            tb_sex.Text = info.sex;
-            tb_age.Text = info.age;
-            tb_card_id.Text = info.cardId;
-            tb_name.Text = info.name;
-
-            tb_serial.Text = info.serialId;
-        }
-
         private void MainForm_Load(object sender, EventArgs e)
         {
+            initRecordAndId(null);
+            // 读卡器初始化
             cvrInit();
+            // 空间与数据绑定
             tb_name.DataBindings.Add("Text", people, "name", false, DataSourceUpdateMode.OnPropertyChanged);
             tb_sex.DataBindings.Add("Text", people, "sex", false, DataSourceUpdateMode.OnPropertyChanged);
             tb_age.DataBindings.Add("Text", people, "age", false, DataSourceUpdateMode.OnPropertyChanged);
             tb_card_id.DataBindings.Add("Text", people, "cardId", false, DataSourceUpdateMode.OnPropertyChanged);
             tb_serial.DataBindings.Add("Text", people, "serialId", false, DataSourceUpdateMode.OnPropertyChanged);
 
-            ColumnHeader ch = new ColumnHeader();
-            ch.Text = "姓名";
-            ch.Width = 77;
-            ch.TextAlign = HorizontalAlignment.Left;
-            lv_print_history.Columns.Add(ch);
-            //lv_print_history.Columns.Add(ch);
-            ColumnHeader ch1 = new ColumnHeader();
-            ch1.Text = "流水号";
-            ch1.Width = 77;
-            ch1.TextAlign = HorizontalAlignment.Left;
-            lv_print_history.Columns.Add(ch1);
-            ColumnHeader ch2 = new ColumnHeader();
-            ch2.Text = "添加时间";
-            ch2.Width = 77;
-            ch2.TextAlign = HorizontalAlignment.Left;
-            lv_print_history.Columns.Add(ch2);
+            //声明委托
+            loghandlers = new loghandler(PrintLog);
 
+            // 循环读卡
+            _readCardInfoTimer = new System.Timers.Timer();
+            _readCardInfoTimer.Elapsed += new ElapsedEventHandler(timeSendSms_Tick);
+            _readCardInfoTimer.Interval = 1000;
+            _readCardInfoTimer.Start();
         }
 
         private void btn_read_Click(object sender, EventArgs e)
         {
-            readData();
+            //people.clearInfo();
+            //string random = Convert.ToString(DateTime.Now.Millisecond % 12);
+            //people.name = "name"+ random;
+            //people.age = random;
+            //people.sex = DateTime.Now.Millisecond % 2 == 0 ? "男" : "女";
+            //people.serialId = Convert.ToString(serialId);
+            //people.cardId = "3332221987110823" + random;
+            if (!isClose)
+            {
+                // 初始化成功后读取数据
+                readData();
+            }
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
@@ -311,13 +367,138 @@ namespace YjkInspectClient
                 try
                 {
                     CVRSDK.CVR_CloseComm();
-                    this.Close();
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show(ex.ToString());
                 }
             }
+        }
+
+        private void lv_print_history_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                ListView.SelectedIndexCollection indexes = this.lv_print_history.SelectedIndices;
+                if (indexes.Count > 0)
+                {
+                    (lv_print_history.Items[indexes[0]].Tag as PeopleInfo).copyTo(people);
+                    //
+                    //string sPartNo = this.lv_print_history.Items[index].SubItems[0].Text;//获取第一列的值  
+                    //string sPartName = this.lv_print_history.Items[index].SubItems[1].Text;//获取第二列的值  
+                    //toolStripStatusLabel1.Text = sPartNo + sPartName + lv_print_history.Items[index].Tag;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("操作失败！\n" + ex.Message, "提示", MessageBoxButtons.OK,
+                    MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button1);
+            }
+        }
+
+        /// <summary>
+        /// 跨线程操作
+        /// </summary>
+        /// <param name="Str">内容</param>
+        /// <param name="msgType">类型</param>
+        public void onevent(string Str, int msgType)
+        {
+            this.Invoke(loghandlers, new object[] { Str, msgType });
+        }
+
+        /// <summary>
+        /// 状态显示
+        /// </summary>
+        /// <param name="msg"></param>
+        public void PrintLog(string msg, int msgType)
+        {
+            try
+            {
+                switch (msgType)
+                {
+                    case TYPE_STATUS_LABEL:
+                        // 更新状态栏
+                        toolStripStatusLabel1.Text = msg;
+                        break;
+                    case TYPE_FILL_DATA:
+                        // 填充数据（界面）
+                        FillData(people);
+                        break;
+                    case TYPE_WRITE_HISTORY:
+                        // 保存打印记录
+                        WriteHistory(people, DateTime.Now);
+                        break;
+                    case TYPE_WRITE_ID:
+                        // 保存流水号
+                        string idPath = "id.txt";
+                        WriteFile(idPath, DateTime.Now.ToString("yy-MM-dd") + "," + Convert.ToString(serialId), false);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            catch (Exception ee)
+            {
+                System.Console.WriteLine(ee.Message);
+            }
+        }
+
+        /// <summary>
+        /// 打印记录
+        /// </summary>
+        /// <param name="toSavePeople">记录（个人信息）</param>
+        /// <param name="dt">打印时间</param>
+        public void WriteHistory(PeopleInfo toSavePeople, DateTime dt)
+        {
+            string historyPath = HISTORY_DIR + "/" + DateTime.Now.ToString("yy-MM-dd") + "_history.txt";
+            WriteFile(historyPath, toSavePeople.ToString(), true);
+        }
+
+        public void WriteFile(String filePath, String toWriteText, bool append)
+        {
+            try
+            {
+                if (!Directory.Exists(HISTORY_DIR))
+                {
+                    Directory.CreateDirectory(HISTORY_DIR);
+                }
+                if (File.Exists(filePath))
+                {
+                    StreamWriter sw = new StreamWriter(filePath, append);
+                    sw.Write(toWriteText + "\r\n");
+
+                    sw.Flush(); sw.Close();
+                    sw.Dispose();
+                }
+                else
+                {
+
+                    StreamWriter sw = new StreamWriter(filePath, false);
+                    sw.Write(toWriteText + "\r\n");
+
+                    sw.Flush(); sw.Close();
+                    sw.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                toolStripStatusLabel1.Text = ex.Message;
+            }
+        }
+
+        //任务thread--非定时--定时任务单独处理
+        private void timeSendSms_Tick(object sender, EventArgs e)
+        {
+            _readCardInfoTimer.Enabled = false;
+            //btn_read.Enabled = false;
+
+            if (!isClose)
+            {
+                readData();
+            }
+
+            //btn_read.Enabled = true;
+            _readCardInfoTimer.Enabled = true;
         }
 
         public int GetAgeByBirthdate(DateTime birthdate)
