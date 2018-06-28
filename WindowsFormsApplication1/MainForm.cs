@@ -16,7 +16,12 @@ namespace YjkInspectClient
     {
         private bool isClose = true;
         private int iRetUSB = 0, iRetCOM = 0;
+        // 缓存的用户信息，和界面绑定
         private PeopleInfo people = new PeopleInfo();
+        // 保存列表信息，所有
+        private List<PeopleInfo> peopleInfos = new List<PeopleInfo>();
+        // 今天的个人信息列表
+        private List<PeopleInfo> todayPeopleInfos = new List<PeopleInfo>();
         private System.Timers.Timer _readCardInfoTimer; // 定时处理任务
         //更新窗体委托
         private loghandler loghandlers;
@@ -27,8 +32,10 @@ namespace YjkInspectClient
         private const int TYPE_WRITE_ID = 4; // 更新 当前 ID (写文件）
 
         private const string HISTORY_DIR = "HistoryRecord";
+        private const string HISTORY_SUFFIX = "_history.txt";
+        private const string DATE_FORMAT_YY_MM_DD = "yy-MM-dd";
 
-        private int serialId = 1;
+        private int serialId = 0;
 
         public delegate void loghandler(string Str, int msgType);
 
@@ -99,11 +106,13 @@ namespace YjkInspectClient
         private void btn_print_Click(object sender, EventArgs e)
         {
             people.addTime = Convert.ToString(DateTime.Now);
-            // printBoxCode(people);
-            addListItem(people);
+            printBoxCode(people);
+            todayPeopleInfos.Add(people.Clone());
+            addListItem(people.Clone());
             onevent("", TYPE_WRITE_HISTORY);
             serialId++;
             people.serialId = Convert.ToString(serialId);
+            setPrintVisible(false);
         }
 
         private void addListItem(PeopleInfo toAdd)
@@ -113,12 +122,16 @@ namespace YjkInspectClient
             lvi.Text = toAdd.name;
             lvi.SubItems.Add(toAdd.serialId);
             lvi.SubItems.Add(toAdd.addTime);
-            lvi.Tag = toAdd.Clone();
+            lvi.Tag = toAdd;
             lv_print_history.Items.Add(lvi);
             lv_print_history.EndUpdate();
         }
 
-        private void addListItem(List<PeopleInfo> toAdd)
+        /// <summary>
+        /// 设置列表显示数据
+        /// </summary>
+        /// <param name="toAdd">需要显示的数据</param>
+        private void SetListItem(List<PeopleInfo> toAdd)
         {
             lv_print_history.BeginUpdate();
             lv_print_history.Items.Clear();
@@ -131,7 +144,7 @@ namespace YjkInspectClient
                 lvi.Tag = item.Clone();
                 lv_print_history.Items.Add(lvi);
             }
-            
+
             lv_print_history.EndUpdate();
         }
 
@@ -154,7 +167,7 @@ namespace YjkInspectClient
             TSCSDK.printerfont("20", "260", "TSS24.BF2", "0", "1", "1", "" + idCard);
             TSCSDK.printlabel("1", "1");                                                    //Print labels
             TSCSDK.closeport();
-            toolStripStatusLabel1.Text = "打印";
+            toolStripStatusLabel2.Text = "打印";
         }
 
         private void printBoxCode(PeopleInfo printPeople)
@@ -168,23 +181,45 @@ namespace YjkInspectClient
         private void initRecordAndId(string fileName)
         {
             bool isToday = string.IsNullOrEmpty(fileName);
-            string historyPath = isToday ? HISTORY_DIR + "/" + DateTime.Now.ToString("yy-MM-dd") + "_history.txt" : HISTORY_DIR + "/" + fileName;
+            string historyPath = isToday ? HISTORY_DIR + "/" + DateTime.Now.ToString(DATE_FORMAT_YY_MM_DD) + HISTORY_SUFFIX : HISTORY_DIR + "/" + fileName;
             if (File.Exists(historyPath))
             {
-                List<PeopleInfo> infos = new List<PeopleInfo>();
+                peopleInfos.Clear();
                 StreamReader sr = new StreamReader(historyPath, Encoding.UTF8);
                 String line;
                 while ((line = sr.ReadLine()) != null)
                 {
-                    infos.Add(new PeopleInfo(line));
+                    peopleInfos.Add(new PeopleInfo(line));
+                    if (isToday)
+                    {
+                        todayPeopleInfos.Add(new PeopleInfo(line));
+                    }
                 }
-                if (isToday && !string.IsNullOrEmpty(infos.Last().serialId))
+                if (isToday && !string.IsNullOrEmpty(peopleInfos.Last().serialId))
                 {
-                    serialId = Convert.ToInt32(infos.Last().serialId);
+                    serialId = Convert.ToInt32(peopleInfos.Last().serialId);
+                    // 设置当前 ++id
+                    people.serialId = Convert.ToString(++serialId);
                 }
-
-                addListItem(infos);
+                peopleInfos.Sort();
+                peopleInfos.Reverse();
+                SetListItem(peopleInfos);
             }
+            else
+            {
+                peopleInfos.Clear();
+                SetListItem(peopleInfos);
+            }
+        }
+
+        private List<string> getFiles()
+        {
+            List<string> resultPath = new List<string>();
+            foreach (string path in Directory.GetFiles(HISTORY_DIR, "*.txt"))
+            {
+                resultPath.Add(path.TrimStart((HISTORY_DIR + "\\").ToCharArray()).TrimEnd(HISTORY_SUFFIX.ToCharArray()));
+            }
+            return resultPath;
         }
 
         /// <summary>
@@ -322,11 +357,25 @@ namespace YjkInspectClient
             }
         }
 
+        /// <summary>
+        /// 查找所有人
+        /// </summary>
+        /// <param name="condition">查找条件</param>
+        /// <returns></returns>
+        public List<PeopleInfo> SearchAllPeople(String condition)
+        {
+            List<PeopleInfo> result = new List<PeopleInfo>();
+            // todo read all data and screen the right
+            return result;
+        }
+
         private void MainForm_Load(object sender, EventArgs e)
         {
+            lbl_title.Parent = pb_banner;
             initRecordAndId(null);
             // 读卡器初始化
             cvrInit();
+            //lb_files.Items.AddRange(getFiles().ToArray());
             // 空间与数据绑定
             tb_name.DataBindings.Add("Text", people, "name", false, DataSourceUpdateMode.OnPropertyChanged);
             tb_sex.DataBindings.Add("Text", people, "sex", false, DataSourceUpdateMode.OnPropertyChanged);
@@ -344,20 +393,12 @@ namespace YjkInspectClient
             _readCardInfoTimer.Start();
         }
 
-        private void btn_read_Click(object sender, EventArgs e)
+        /// <summary>
+        /// 取消按钮
+        /// </summary>
+        private void btn_cancel_Click(object sender, EventArgs e)
         {
-            //people.clearInfo();
-            //string random = Convert.ToString(DateTime.Now.Millisecond % 12);
-            //people.name = "name"+ random;
-            //people.age = random;
-            //people.sex = DateTime.Now.Millisecond % 2 == 0 ? "男" : "女";
-            //people.serialId = Convert.ToString(serialId);
-            //people.cardId = "3332221987110823" + random;
-            if (!isClose)
-            {
-                // 初始化成功后读取数据
-                readData();
-            }
+            setPrintVisible(false);
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
@@ -383,10 +424,7 @@ namespace YjkInspectClient
                 if (indexes.Count > 0)
                 {
                     (lv_print_history.Items[indexes[0]].Tag as PeopleInfo).copyTo(people);
-                    //
-                    //string sPartNo = this.lv_print_history.Items[index].SubItems[0].Text;//获取第一列的值  
-                    //string sPartName = this.lv_print_history.Items[index].SubItems[1].Text;//获取第二列的值  
-                    //toolStripStatusLabel1.Text = sPartNo + sPartName + lv_print_history.Items[index].Tag;
+                    setPrintVisible(true);
                 }
             }
             catch (Exception ex)
@@ -450,10 +488,16 @@ namespace YjkInspectClient
         /// <param name="dt">打印时间</param>
         public void WriteHistory(PeopleInfo toSavePeople, DateTime dt)
         {
-            string historyPath = HISTORY_DIR + "/" + DateTime.Now.ToString("yy-MM-dd") + "_history.txt";
+            string historyPath = HISTORY_DIR + "/" + DateTime.Now.ToString("yy-MM-dd") + HISTORY_SUFFIX;
             WriteFile(historyPath, toSavePeople.ToString(), true);
         }
 
+        /// <summary>
+        /// 写文件
+        /// </summary>
+        /// <param name="filePath">路径</param>
+        /// <param name="toWriteText">一行文字</param>
+        /// <param name="append">是否从后面添加</param>
         public void WriteFile(String filePath, String toWriteText, bool append)
         {
             try
@@ -465,25 +509,45 @@ namespace YjkInspectClient
                 if (File.Exists(filePath))
                 {
                     StreamWriter sw = new StreamWriter(filePath, append);
-                    sw.Write(toWriteText + "\r\n");
+                    sw.WriteLine(toWriteText);
 
-                    sw.Flush(); sw.Close();
+                    sw.Flush();
+                    sw.Close();
                     sw.Dispose();
                 }
                 else
                 {
 
                     StreamWriter sw = new StreamWriter(filePath, false);
-                    sw.Write(toWriteText + "\r\n");
+                    sw.WriteLine(toWriteText);
 
-                    sw.Flush(); sw.Close();
+                    sw.Flush();
+                    sw.Close();
                     sw.Dispose();
                 }
             }
             catch (Exception ex)
             {
-                toolStripStatusLabel1.Text = ex.Message;
+                toolStripStatusLabel2.Text = ex.Message;
             }
+        }
+
+        private void setPrintVisible(bool isVisible)
+        {
+            panel_print.Visible = isVisible;
+            dtp_select_history.Enabled = !isVisible;
+            lv_print_history.HideSelection = false;
+            lv_print_history.Enabled = !isVisible;
+            tb_search.Enabled = !isVisible;
+            btn_search.Enabled = !isVisible;
+            btn_add.Enabled = !isVisible;
+        }
+
+        private void searchAllRecord(string condition)
+        {
+            toolStripStatusLabel2.Text = "正在查找";
+
+            toolStripStatusLabel2.Text = "";
         }
 
         //任务thread--非定时--定时任务单独处理
@@ -499,6 +563,111 @@ namespace YjkInspectClient
 
             //btn_read.Enabled = true;
             _readCardInfoTimer.Enabled = true;
+        }
+
+        /// <summary>
+        /// 查询
+        /// </summary>
+        private void btn_search_Click(object sender, EventArgs e)
+        {
+            string searchCondition = tb_search.Text.Trim();
+            SetListItem(peopleInfos.Where(x =>
+            (x.name.Contains(searchCondition)
+            || x.serialId.Equals(searchCondition)
+            || x.cardId.Equals(searchCondition))
+            ).ToList());
+        }
+
+        /// <summary>
+        /// 监听键盘按下事件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void MainForm_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Modifiers == Keys.Control && e.KeyCode == Keys.F)
+            {
+                
+            }
+        }
+
+        /// <summary>
+        /// 搜索回车按钮
+        /// </summary>
+        private void tb_search_KeyDown(object sender, KeyEventArgs e)
+        {
+            if(e.KeyCode== Keys.Enter)
+            {
+                string searchCondition = tb_search.Text.Trim();
+                SetListItem(peopleInfos.Where(x =>
+                (x.name.Contains(searchCondition)
+                || x.serialId.Equals(searchCondition)
+                || x.cardId.Equals(searchCondition))
+                ).ToList());
+            }
+        }
+
+        /// <summary>
+        /// 最小化
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void pb_min_Click(object sender, EventArgs e)
+        {
+            this.WindowState = FormWindowState.Minimized;
+        }
+
+        /// <summary>
+        /// 关闭
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void pb_close_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private Point mouseOffset; //记录鼠标指针的坐标 
+        private bool isMouseDown = false; //记录鼠标按键是否按下 
+
+        private void pb_banner_MouseDown(object sender, MouseEventArgs e)
+        {
+            int xOffset;
+            int yOffset;
+
+            if (e.Button == MouseButtons.Left)
+            {
+                xOffset = -e.X;
+                yOffset = -e.Y;
+                mouseOffset = new Point(xOffset, yOffset);
+                isMouseDown = true;
+            }
+        }
+
+        private void pb_banner_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (isMouseDown)
+            {
+                Point mousePos = Control.MousePosition;
+                mousePos.Offset(mouseOffset.X, mouseOffset.Y);
+                Location = mousePos;
+            }
+        }
+
+        private void pb_banner_MouseUp(object sender, MouseEventArgs e)
+        {
+            // 修改鼠标状态isMouseDown的值 
+            // 确保只有鼠标左键按下并移动时，才移动窗体 
+            if (e.Button == MouseButtons.Left)
+            {
+                isMouseDown = false;
+            }
+        }
+
+        private void dtp_select_history_ValueChanged(object sender, EventArgs e)
+        {
+            tb_search.Text = "";
+            initRecordAndId(dtp_select_history.Value.ToString(DATE_FORMAT_YY_MM_DD) + HISTORY_SUFFIX);
         }
 
         public int GetAgeByBirthdate(DateTime birthdate)

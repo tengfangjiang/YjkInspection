@@ -11,12 +11,12 @@ namespace YjkInspectClient
     /// <summary>
     /// 个人信息（打印记录）
     /// </summary>
-    public class PeopleInfo : INotifyPropertyChanged
+    public class PeopleInfo : INotifyPropertyChanged, IComparable<PeopleInfo>
     {
         /// <summary>
         /// 身份证号码
         /// </summary>
-        private string _cardId = string.Empty; 
+        private string _cardId = string.Empty;
         /// <summary>
         /// 姓名
         /// </summary>
@@ -165,6 +165,11 @@ namespace YjkInspectClient
         public PeopleInfo Clone()
         {
             return this.MemberwiseClone() as PeopleInfo;
+        }
+
+        public int CompareTo(PeopleInfo other)
+        {
+            return _addTime.CompareTo(other._addTime);
         }
     }
 }

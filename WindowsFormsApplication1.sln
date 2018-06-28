@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.27703.2035
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YjkInspectClient", "WindowsFormsApplication1\YjkInspectClient.csproj", "{D72E3874-7CE0-4495-A82C-CE1035DF733A}"
 EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "益健康检验系统", "益健康检验系统\益健康检验系统.vdproj", "{E2AC261E-FE5F-40F0-A95B-84600F649176}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -15,6 +17,8 @@ Global
 		{D72E3874-7CE0-4495-A82C-CE1035DF733A}.Debug|x86.Build.0 = Debug|x86
 		{D72E3874-7CE0-4495-A82C-CE1035DF733A}.Release|x86.ActiveCfg = Release|x86
 		{D72E3874-7CE0-4495-A82C-CE1035DF733A}.Release|x86.Build.0 = Release|x86
+		{E2AC261E-FE5F-40F0-A95B-84600F649176}.Debug|x86.ActiveCfg = Debug
+		{E2AC261E-FE5F-40F0-A95B-84600F649176}.Release|x86.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

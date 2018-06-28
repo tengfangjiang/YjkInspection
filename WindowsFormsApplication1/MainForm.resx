@@ -120,4 +120,22 @@
   <metadata name="statusStrip1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>17, 17</value>
   </metadata>
+  <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+  <data name="pb_close.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAABGdBTUEAALGPC/xhBQAAABl0RVh0U29m
+        dHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAACnSURBVDhPrdTLDYMwEEVRCgi7hEbc/4oW6GfiawFC
+        9rzhYxZXwfb4SFnAYGav5m72tD+klLqKwDH3PaxVzHy2tQIZmHNL7rfueXHGDLMFVeA2aOuvh7ozCqQp
+        p9AaY7acRSB5qMToDKQakBhdAemISox6QPaa2Stg9Jcb9AysMdbe3n4nAqOL8kyBERbOKJD3+O6rxx0J
+        0p2PQ8EoAh/VgG/lbj7Phj8NRoM2X8sowAAAAABJRU5ErkJggg==
+</value>
+  </data>
+  <data name="pb_min.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAABGdBTUEAALGPC/xhBQAAABl0RVh0U29m
+        dHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAABKSURBVDhPtcwxDgAgDMPA/qn/f1uQGBiQJ1yGy+Ah
+        lWQURgOjgdHAaGA0MBoYjT3dPeI+jPT/UDuHkzAaGA2MBkYDo4HRwPgutQDicB9NsK/T8wAAAABJRU5E
+        rkJggg==
+</value>
+  </data>
 </root>
