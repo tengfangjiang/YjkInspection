@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.button1 = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
@@ -55,6 +56,7 @@
             this.btn_search = new System.Windows.Forms.Button();
             this.pb_banner = new System.Windows.Forms.PictureBox();
             this.panel_print = new System.Windows.Forms.Panel();
+            this.lbl_line = new System.Windows.Forms.Label();
             this.lbl_title = new System.Windows.Forms.Label();
             this.btn_add = new System.Windows.Forms.Button();
             this.pb_close = new System.Windows.Forms.PictureBox();
@@ -62,6 +64,10 @@
             this.label6 = new System.Windows.Forms.Label();
             this.dtp_select_history = new System.Windows.Forms.DateTimePicker();
             this.label5 = new System.Windows.Forms.Label();
+            this.lbl_help = new System.Windows.Forms.Label();
+            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+            this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
+            this.loadingPanel1 = new YjkInspectClient.LoadingPanel();
             this.statusStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pb_banner)).BeginInit();
             this.panel_print.SuspendLayout();
@@ -142,7 +148,7 @@
             this.lv_print_history.TabIndex = 4;
             this.lv_print_history.UseCompatibleStateImageBehavior = false;
             this.lv_print_history.View = System.Windows.Forms.View.Details;
-            this.lv_print_history.SelectedIndexChanged += new System.EventHandler(this.lv_print_history_SelectedIndexChanged);
+            this.lv_print_history.DoubleClick += new System.EventHandler(this.lv_print_history_DoubleClick);
             // 
             // ch_name
             // 
@@ -161,7 +167,7 @@
             // 
             // statusStrip1
             // 
-            this.statusStrip1.BackColor = System.Drawing.Color.White;
+            this.statusStrip1.BackColor = System.Drawing.SystemColors.Control;
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripStatusLabel1,
             this.toolStripStatusLabel2});
@@ -176,13 +182,16 @@
             // 
             this.toolStripStatusLabel1.BackColor = System.Drawing.Color.Transparent;
             this.toolStripStatusLabel1.Name = "toolStripStatusLabel1";
-            this.toolStripStatusLabel1.Size = new System.Drawing.Size(0, 17);
+            this.toolStripStatusLabel1.Size = new System.Drawing.Size(63, 17);
+            this.toolStripStatusLabel1.Text = "信息提示1";
             this.toolStripStatusLabel1.ToolTipText = "      ";
             // 
             // toolStripStatusLabel2
             // 
+            this.toolStripStatusLabel2.Margin = new System.Windows.Forms.Padding(20, 3, 0, 2);
             this.toolStripStatusLabel2.Name = "toolStripStatusLabel2";
-            this.toolStripStatusLabel2.Size = new System.Drawing.Size(0, 17);
+            this.toolStripStatusLabel2.Size = new System.Drawing.Size(63, 17);
+            this.toolStripStatusLabel2.Text = "信息提示2";
             // 
             // label_name
             // 
@@ -306,7 +315,7 @@
             this.btn_cancel.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btn_cancel.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.btn_cancel.ForeColor = System.Drawing.SystemColors.ControlDarkDark;
-            this.btn_cancel.Location = new System.Drawing.Point(40, 291);
+            this.btn_cancel.Location = new System.Drawing.Point(55, 291);
             this.btn_cancel.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.btn_cancel.Name = "btn_cancel";
             this.btn_cancel.Size = new System.Drawing.Size(115, 45);
@@ -361,6 +370,8 @@
             // 
             // panel_print
             // 
+            this.panel_print.BackColor = System.Drawing.Color.Transparent;
+            this.panel_print.Controls.Add(this.lbl_line);
             this.panel_print.Controls.Add(this.tb_name);
             this.panel_print.Controls.Add(this.btn_print);
             this.panel_print.Controls.Add(this.label_name);
@@ -380,6 +391,15 @@
             this.panel_print.Size = new System.Drawing.Size(334, 381);
             this.panel_print.TabIndex = 17;
             this.panel_print.Visible = false;
+            // 
+            // lbl_line
+            // 
+            this.lbl_line.BackColor = System.Drawing.Color.Gray;
+            this.lbl_line.Dock = System.Windows.Forms.DockStyle.Top;
+            this.lbl_line.Location = new System.Drawing.Point(0, 0);
+            this.lbl_line.Name = "lbl_line";
+            this.lbl_line.Size = new System.Drawing.Size(334, 1);
+            this.lbl_line.TabIndex = 13;
             // 
             // lbl_title
             // 
@@ -410,7 +430,7 @@
             this.btn_add.TabIndex = 3;
             this.btn_add.Text = "新增";
             this.btn_add.UseVisualStyleBackColor = false;
-            this.btn_add.Click += new System.EventHandler(this.btn_print_Click);
+            this.btn_add.Click += new System.EventHandler(this.btn_add_Click);
             // 
             // pb_close
             // 
@@ -424,6 +444,7 @@
             this.pb_close.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
             this.pb_close.TabIndex = 19;
             this.pb_close.TabStop = false;
+            this.toolTip1.SetToolTip(this.pb_close, "退出");
             this.pb_close.Click += new System.EventHandler(this.pb_close_Click);
             // 
             // pb_min
@@ -438,6 +459,7 @@
             this.pb_min.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
             this.pb_min.TabIndex = 20;
             this.pb_min.TabStop = false;
+            this.toolTip1.SetToolTip(this.pb_min, "最小化");
             this.pb_min.Click += new System.EventHandler(this.pb_min_Click);
             // 
             // label6
@@ -476,12 +498,46 @@
             this.label5.TabIndex = 23;
             this.label5.Text = "选择日期查看历史纪录";
             // 
+            // lbl_help
+            // 
+            this.lbl_help.AutoSize = true;
+            this.lbl_help.BackColor = System.Drawing.Color.Transparent;
+            this.lbl_help.Font = new System.Drawing.Font("微软雅黑", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.lbl_help.Location = new System.Drawing.Point(232, 3);
+            this.lbl_help.Name = "lbl_help";
+            this.lbl_help.Padding = new System.Windows.Forms.Padding(5, 0, 5, 0);
+            this.lbl_help.Size = new System.Drawing.Size(28, 21);
+            this.lbl_help.TabIndex = 24;
+            this.lbl_help.Text = "?";
+            this.lbl_help.MouseHover += new System.EventHandler(this.lbl_help_MouseHover);
+            // 
+            // notifyIcon1
+            // 
+            this.notifyIcon1.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon1.Icon")));
+            this.notifyIcon1.Text = "notifyIcon1";
+            this.notifyIcon1.Visible = true;
+            this.notifyIcon1.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon1_MouseDoubleClick);
+            // 
+            // loadingPanel1
+            // 
+            this.loadingPanel1.Alpha = 125;
+            this.loadingPanel1.BackColor = System.Drawing.SystemColors.Desktop;
+            this.loadingPanel1.Location = new System.Drawing.Point(0, 0);
+            this.loadingPanel1.Name = "loadingPanel1";
+            this.loadingPanel1.Size = new System.Drawing.Size(334, 269);
+            this.loadingPanel1.TabIndex = 25;
+            this.loadingPanel1.Text = "loadingPanel1";
+            this.loadingPanel1.TransparentBG = true;
+            this.loadingPanel1.Visible = false;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 17F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.ControlLightLight;
             this.ClientSize = new System.Drawing.Size(334, 669);
+            this.Controls.Add(this.loadingPanel1);
+            this.Controls.Add(this.lbl_help);
             this.Controls.Add(this.label5);
             this.Controls.Add(this.dtp_select_history);
             this.Controls.Add(this.label6);
@@ -506,6 +562,7 @@
             this.MaximizeBox = false;
             this.Name = "MainForm";
             this.ShowIcon = false;
+            this.ShowInTaskbar = false;
             this.Text = "益健康检验客户端";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             this.Load += new System.EventHandler(this.MainForm_Load);
@@ -557,6 +614,11 @@
         private System.Windows.Forms.DateTimePicker dtp_select_history;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel2;
+        private System.Windows.Forms.Label lbl_help;
+        private System.Windows.Forms.ToolTip toolTip1;
+        private System.Windows.Forms.Label lbl_line;
+        private System.Windows.Forms.NotifyIcon notifyIcon1;
+        private LoadingPanel loadingPanel1;
     }
 }
 

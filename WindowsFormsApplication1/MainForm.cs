@@ -35,6 +35,17 @@ namespace YjkInspectClient
         private const string HISTORY_SUFFIX = "_history.txt";
         private const string DATE_FORMAT_YY_MM_DD = "yy-MM-dd";
 
+        private string[] TOOL_TIPS = {"ctrl + F 可以查询所有数据"
+                ,"使用系统前请提前配置好身份证读卡器和标签打印机"
+                ,"标签打印机感测器类型为黑标，送纸偏移2.00"
+                ,"打印机型号为 Gprinter  GP-1324D"
+                ,"Gprinter  GP-1324D 必须为默认打印机"
+                ,"有问题请联系 400-025-1199"
+                ,"www.yjk2020.com"
+                ,"放置身份证至读卡器->保存并打印->换新身份证"
+                ,"输入流水号/姓名/证件号 可以筛选相应记录"
+                ,"双击记录可弹出打印菜单"};
+
         private int serialId = 0;
 
         public delegate void loghandler(string Str, int msgType);
@@ -105,6 +116,14 @@ namespace YjkInspectClient
 
         private void btn_print_Click(object sender, EventArgs e)
         {
+            if (string.IsNullOrEmpty(tb_card_id.Text)
+                || string.IsNullOrEmpty(tb_name.Text)
+                || string.IsNullOrEmpty(tb_sex.Text)
+                || string.IsNullOrEmpty(tb_serial.Text))
+            {
+                toolStripStatusLabel2.Text = "请完善信息再打印";
+                return;
+            }
             people.addTime = Convert.ToString(DateTime.Now);
             printBoxCode(people);
             todayPeopleInfos.Add(people.Clone());
@@ -162,10 +181,10 @@ namespace YjkInspectClient
             TSCSDK.printerfont("20", "30", "TSS24.BF2", "0", "1", "1", "姓  名: " + name);//姓  名
             TSCSDK.printerfont("20", "65", "TSS24.BF2", "0", "1", "1", "年  龄: " + age + "岁");//年  龄
             TSCSDK.printerfont("20", "100", "TSS24.BF2", "0", "1", "1", "性  别: " + sex);//性  别
-            TSCSDK.printerfont("20", "135", "TSS24.BF2", "0", "1", "1", "流水号：" + number);
-            TSCSDK.barcode("20", "190", "128", "50", "0", "0", "2", "2", barCode);
-            TSCSDK.printerfont("20", "260", "TSS24.BF2", "0", "1", "1", "" + idCard);
-            TSCSDK.printlabel("1", "1");                                                    //Print labels
+            TSCSDK.printerfont("20", "135", "TSS24.BF2", "0", "1", "1", "流水号：" + number); // 流水号
+            TSCSDK.barcode("20", "190", "128", "50", "0", "0", "2", "2", barCode); // 身份证号
+            TSCSDK.printerfont("20", "260", "TSS24.BF2", "0", "1", "1", "" + IDCardHide(idCard));
+            TSCSDK.printlabel("1", "1");                                            //Print labels
             TSCSDK.closeport();
             toolStripStatusLabel2.Text = "打印";
         }
@@ -181,7 +200,7 @@ namespace YjkInspectClient
         private void initRecordAndId(string fileName)
         {
             bool isToday = string.IsNullOrEmpty(fileName);
-            string historyPath = isToday ? HISTORY_DIR + "/" + DateTime.Now.ToString(DATE_FORMAT_YY_MM_DD) + HISTORY_SUFFIX : HISTORY_DIR + "/" + fileName;
+            string historyPath = isToday ? HISTORY_DIR + "/" + DateTime.Now.ToString(DATE_FORMAT_YY_MM_DD) + HISTORY_SUFFIX : HISTORY_DIR + "/" + fileName + HISTORY_SUFFIX;
             if (File.Exists(historyPath))
             {
                 peopleInfos.Clear();
@@ -198,9 +217,10 @@ namespace YjkInspectClient
                 if (isToday && !string.IsNullOrEmpty(peopleInfos.Last().serialId))
                 {
                     serialId = Convert.ToInt32(peopleInfos.Last().serialId);
-                    // 设置当前 ++id
-                    people.serialId = Convert.ToString(++serialId);
                 }
+
+                sr.Close();
+                sr.Dispose();
                 peopleInfos.Sort();
                 peopleInfos.Reverse();
                 SetListItem(peopleInfos);
@@ -209,6 +229,11 @@ namespace YjkInspectClient
             {
                 peopleInfos.Clear();
                 SetListItem(peopleInfos);
+            }
+            if (isToday)
+            {
+                // 设置当前 ++id
+                people.serialId = Convert.ToString(++serialId);
             }
         }
 
@@ -365,13 +390,60 @@ namespace YjkInspectClient
         public List<PeopleInfo> SearchAllPeople(String condition)
         {
             List<PeopleInfo> result = new List<PeopleInfo>();
-            // todo read all data and screen the right
+            foreach (string path in getFiles())
+            {
+                string historyPath = HISTORY_DIR + "/" + path + HISTORY_SUFFIX;
+                if (File.Exists(historyPath))
+                {
+                    StreamReader sr = new StreamReader(historyPath, Encoding.UTF8);
+                    String line;
+                    while ((line = sr.ReadLine()) != null)
+                    {
+                        PeopleInfo temPeople = new PeopleInfo(line);
+                        if (temPeople.name.Contains(condition)
+                            || temPeople.serialId.Equals(condition)
+                            || temPeople.cardId.Equals(condition))
+                        {
+                            result.Add(new PeopleInfo(line));
+                        }
+                    }
+                    sr.Close();
+                    sr.Dispose();
+                    result.Sort();
+                    result.Reverse();
+                }
+            }
             return result;
+        }
+
+        /// <summary>
+        /// 隐藏身份证号码
+        /// </summary>
+        /// <param name="card"></param>
+        /// <returns></returns>
+        public static string IDCardHide(string card)
+        {
+            string temp = null;
+            if (card.Length == 18)
+            {
+                temp = card.Substring(0, 5) + "***********" + card.Substring(16, 2);
+            }
+            else if (card.Length == 15)
+            {
+                temp = card.Substring(0, 4) + "********" + card.Substring(12, 3);
+            }
+            else
+            {
+                temp = card;
+            }
+            return temp;
         }
 
         private void MainForm_Load(object sender, EventArgs e)
         {
             lbl_title.Parent = pb_banner;
+            lbl_help.Parent = pb_banner;
+            //pb_arraw.Parent = loadingPanel1;
             initRecordAndId(null);
             // 读卡器初始化
             cvrInit();
@@ -416,24 +488,6 @@ namespace YjkInspectClient
             }
         }
 
-        private void lv_print_history_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            try
-            {
-                ListView.SelectedIndexCollection indexes = this.lv_print_history.SelectedIndices;
-                if (indexes.Count > 0)
-                {
-                    (lv_print_history.Items[indexes[0]].Tag as PeopleInfo).copyTo(people);
-                    setPrintVisible(true);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("操作失败！\n" + ex.Message, "提示", MessageBoxButtons.OK,
-                    MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button1);
-            }
-        }
-
         /// <summary>
         /// 跨线程操作
         /// </summary>
@@ -461,6 +515,7 @@ namespace YjkInspectClient
                     case TYPE_FILL_DATA:
                         // 填充数据（界面）
                         FillData(people);
+                        setPrintVisible(true);
                         break;
                     case TYPE_WRITE_HISTORY:
                         // 保存打印记录
@@ -535,6 +590,7 @@ namespace YjkInspectClient
         private void setPrintVisible(bool isVisible)
         {
             panel_print.Visible = isVisible;
+            loadingPanel1.Visible = isVisible;
             dtp_select_history.Enabled = !isVisible;
             lv_print_history.HideSelection = false;
             lv_print_history.Enabled = !isVisible;
@@ -546,8 +602,8 @@ namespace YjkInspectClient
         private void searchAllRecord(string condition)
         {
             toolStripStatusLabel2.Text = "正在查找";
-
-            toolStripStatusLabel2.Text = "";
+            SetListItem(SearchAllPeople(condition));
+            toolStripStatusLabel2.Text = "查找结束";
         }
 
         //任务thread--非定时--定时任务单独处理
@@ -587,7 +643,7 @@ namespace YjkInspectClient
         {
             if (e.Modifiers == Keys.Control && e.KeyCode == Keys.F)
             {
-                
+                searchAllRecord(tb_search.Text);
             }
         }
 
@@ -596,7 +652,7 @@ namespace YjkInspectClient
         /// </summary>
         private void tb_search_KeyDown(object sender, KeyEventArgs e)
         {
-            if(e.KeyCode== Keys.Enter)
+            if (e.KeyCode == Keys.Enter)
             {
                 string searchCondition = tb_search.Text.Trim();
                 SetListItem(peopleInfos.Where(x =>
@@ -615,6 +671,10 @@ namespace YjkInspectClient
         private void pb_min_Click(object sender, EventArgs e)
         {
             this.WindowState = FormWindowState.Minimized;
+            if (this.WindowState == FormWindowState.Minimized)
+            {
+                this.Visible = false;
+            }
         }
 
         /// <summary>
@@ -667,7 +727,54 @@ namespace YjkInspectClient
         private void dtp_select_history_ValueChanged(object sender, EventArgs e)
         {
             tb_search.Text = "";
-            initRecordAndId(dtp_select_history.Value.ToString(DATE_FORMAT_YY_MM_DD) + HISTORY_SUFFIX);
+            initRecordAndId(dtp_select_history.Value.ToString(DATE_FORMAT_YY_MM_DD));
+        }
+
+        /// <summary>
+        /// 添加
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btn_add_Click(object sender, EventArgs e)
+        {
+            setPrintVisible(true);
+        }
+
+        private void lbl_help_MouseHover(object sender, EventArgs e)
+        {
+            toolTip1.Show(TOOL_TIPS[DateTime.Now.Millisecond % TOOL_TIPS.Length], lbl_help);
+        }
+
+        /// <summary>
+        /// 双击列表
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void lv_print_history_DoubleClick(object sender, EventArgs e)
+        {
+            if (this.lv_print_history.SelectedItems.Count == 0)
+                return;
+            try
+            {
+                ListView.SelectedIndexCollection indexes = this.lv_print_history.SelectedIndices;
+                if (indexes.Count > 0)
+                {
+                    (lv_print_history.Items[indexes[0]].Tag as PeopleInfo).copyTo(people);
+                    setPrintVisible(true);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("操作失败！\n" + ex.Message, "提示", MessageBoxButtons.OK,
+                    MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button1);
+            }
+        }
+
+        private void notifyIcon1_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            this.Visible = true;
+            this.WindowState = FormWindowState.Normal;
+            this.Activate();
         }
 
         public int GetAgeByBirthdate(DateTime birthdate)
