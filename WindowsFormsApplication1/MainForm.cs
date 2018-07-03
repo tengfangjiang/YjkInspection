@@ -210,7 +210,7 @@ namespace YjkInspectClient
 
         private void printBoxCode(PeopleInfo printPeople)
         {
-            printBoxCode(printPeople.name, printPeople.cardId, printPeople.name, printPeople.cardId, printPeople.age, printPeople.sex, printPeople.serialId);
+            printBoxCode(printPeople.serialId, printPeople.cardId, printPeople.name, printPeople.cardId, printPeople.age, printPeople.sex, printPeople.serialId);
         }
 
         /// <summary>
