@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Runtime.InteropServices;//这是用到DllImport时候要引入的包
-
+﻿using System.Runtime.InteropServices;//这是用到DllImport时候要引入的包
 
 namespace YjkInspectClient
 {
@@ -14,7 +8,7 @@ namespace YjkInspectClient
     class CVRSDK
     {
         [DllImport("termb.dll", EntryPoint = "CVR_InitComm", CharSet = CharSet.Auto, SetLastError = false)]
-        public static extern int CVR_InitComm(int Port);//声明外部的标准动态库, 跟Win32API是一样的
+        public static extern int CVR_InitComm(int Port); //声明外部的标准动态库, 跟Win32API是一样的
         [DllImport("termb.dll", EntryPoint = "CVR_Authenticate", CharSet = CharSet.Auto, SetLastError = false)]
         public static extern int CVR_Authenticate();
         [DllImport("termb.dll", EntryPoint = "CVR_Read_Content", CharSet = CharSet.Auto, SetLastError = false)]
@@ -43,7 +37,5 @@ namespace YjkInspectClient
         public static extern int CVR_GetSAMID(ref byte strTmp);
         [DllImport("termb.dll", EntryPoint = "GetManuID", CharSet = CharSet.Ansi, SetLastError = false, CallingConvention = CallingConvention.StdCall)]
         public static extern int GetManuID(ref byte strTmp);
-
-
     }
 }

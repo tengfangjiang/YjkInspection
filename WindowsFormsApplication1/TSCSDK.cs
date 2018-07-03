@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Runtime.InteropServices;//这是用到DllImport时候要引入的包
+﻿using System.Runtime.InteropServices;//这是用到DllImport时候要引入的包
 
 namespace YjkInspectClient
 {
@@ -44,7 +39,7 @@ namespace YjkInspectClient
         public static extern int printlabel(string set, string copy);
 
         [DllImport("TSCLIB.dll", EntryPoint = "sendcommand")]
-        public static extern int sendcommand(string printercommand);
+        public static extern int sendcommand([MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(UTF8Marshaler))] string printercommand);
 
         [DllImport("TSCLIB.dll", EntryPoint = "setup")]
         public static extern int setup(string width, string height,

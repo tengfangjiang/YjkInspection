@@ -182,16 +182,14 @@
             // 
             this.toolStripStatusLabel1.BackColor = System.Drawing.Color.Transparent;
             this.toolStripStatusLabel1.Name = "toolStripStatusLabel1";
-            this.toolStripStatusLabel1.Size = new System.Drawing.Size(63, 17);
-            this.toolStripStatusLabel1.Text = "信息提示1";
+            this.toolStripStatusLabel1.Size = new System.Drawing.Size(0, 17);
             this.toolStripStatusLabel1.ToolTipText = "      ";
             // 
             // toolStripStatusLabel2
             // 
             this.toolStripStatusLabel2.Margin = new System.Windows.Forms.Padding(20, 3, 0, 2);
             this.toolStripStatusLabel2.Name = "toolStripStatusLabel2";
-            this.toolStripStatusLabel2.Size = new System.Drawing.Size(63, 17);
-            this.toolStripStatusLabel2.Text = "信息提示2";
+            this.toolStripStatusLabel2.Size = new System.Drawing.Size(0, 17);
             // 
             // label_name
             // 
@@ -293,9 +291,12 @@
             this.tb_serial.Font = new System.Drawing.Font("微软雅黑", 10.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.tb_serial.Location = new System.Drawing.Point(100, 33);
             this.tb_serial.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.tb_serial.MaxLength = 26;
             this.tb_serial.Name = "tb_serial";
+            this.tb_serial.ShortcutsEnabled = false;
             this.tb_serial.Size = new System.Drawing.Size(191, 26);
             this.tb_serial.TabIndex = 11;
+            this.tb_serial.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.tb_serial_KeyPress);
             // 
             // tb_card_id
             // 
@@ -514,7 +515,7 @@
             // notifyIcon1
             // 
             this.notifyIcon1.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon1.Icon")));
-            this.notifyIcon1.Text = "notifyIcon1";
+            this.notifyIcon1.Text = "益健康打印";
             this.notifyIcon1.Visible = true;
             this.notifyIcon1.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon1_MouseDoubleClick);
             // 
@@ -563,6 +564,7 @@
             this.Name = "MainForm";
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
+            this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
             this.Text = "益健康检验客户端";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             this.Load += new System.EventHandler(this.MainForm_Load);

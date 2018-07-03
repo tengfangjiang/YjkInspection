@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using System.Runtime.InteropServices;
 using System.Timers;
 using System.IO;
+using Microsoft.Win32;
 
 namespace YjkInspectClient
 {
@@ -30,10 +29,13 @@ namespace YjkInspectClient
         private const int TYPE_FILL_DATA = 2; // 更新数据填充
         private const int TYPE_WRITE_HISTORY = 3; // 更新历史纪录（写文件）
         private const int TYPE_WRITE_ID = 4; // 更新 当前 ID (写文件）
+        private const int TYPE_SEARCH_ALL = 5; // 从所有结果中查找记录
 
         private const string HISTORY_DIR = "HistoryRecord";
         private const string HISTORY_SUFFIX = "_history.txt";
         private const string DATE_FORMAT_YY_MM_DD = "yy-MM-dd";
+
+        private const string MY_SOFT_NAME = "yjkInspectClient";
 
         private string[] TOOL_TIPS = {"ctrl + F 可以查询所有数据"
                 ,"使用系统前请提前配置好身份证读卡器和标签打印机"
@@ -126,9 +128,25 @@ namespace YjkInspectClient
             }
             people.addTime = Convert.ToString(DateTime.Now);
             printBoxCode(people);
+            //dtp_select_history.Value = DateTime.Now;
+            peopleInfos.Add(people.Clone());
+
             todayPeopleInfos.Add(people.Clone());
+            //todayPeopleInfos.Sort();
+            //todayPeopleInfos.Reverse();
+            //SetListItem(todayPeopleInfos);
+
             addListItem(people.Clone());
+
             onevent("", TYPE_WRITE_HISTORY);
+            try
+            {
+                serialId = Convert.ToInt32(people.serialId);
+            }
+            catch (Exception ex)
+            {
+                onevent(ex.Message, TYPE_SEARCH_ALL);
+            }
             serialId++;
             people.serialId = Convert.ToString(serialId);
             setPrintVisible(false);
@@ -142,7 +160,7 @@ namespace YjkInspectClient
             lvi.SubItems.Add(toAdd.serialId);
             lvi.SubItems.Add(toAdd.addTime);
             lvi.Tag = toAdd;
-            lv_print_history.Items.Add(lvi);
+            lv_print_history.Items.Insert(0, lvi);
             lv_print_history.EndUpdate();
         }
 
@@ -173,11 +191,12 @@ namespace YjkInspectClient
             TSCSDK.sendcommand("SIZE 60 mm,40 mm");
             //Open specified printer driver
             //setup("30", "25", "4", "8", "0", "0", "0");                          　　 //Setup the media size and sensor type info            
-
+            Encoding ed = Encoding.Default;
             TSCSDK.clearbuffer();
             TSCSDK.sendcommand("CLS");
 
-            TSCSDK.sendcommand("QRCODE 300,30,L,6,A,0,\"" + boxCode + "\"");// 打印二维码
+            TSCSDK.sendcommand("QRCODE 300,30,L,6,A,0,M2,S3,\"" + boxCode + "\"");// 打印二维码
+
             TSCSDK.printerfont("20", "30", "TSS24.BF2", "0", "1", "1", "姓  名: " + name);//姓  名
             TSCSDK.printerfont("20", "65", "TSS24.BF2", "0", "1", "1", "年  龄: " + age + "岁");//年  龄
             TSCSDK.printerfont("20", "100", "TSS24.BF2", "0", "1", "1", "性  别: " + sex);//性  别
@@ -317,7 +336,7 @@ namespace YjkInspectClient
                     }
                     else
                     {
-                        onevent("未放卡或卡片放置不正确", TYPE_STATUS_LABEL);
+                        //onevent("未放卡或卡片放置不正确", TYPE_STATUS_LABEL);
                     }
                 }
                 else
@@ -443,12 +462,24 @@ namespace YjkInspectClient
         {
             lbl_title.Parent = pb_banner;
             lbl_help.Parent = pb_banner;
-            //pb_arraw.Parent = loadingPanel1;
+            // 如果有过位置记录，在上次关闭处打开，如果没有，显示在右上角
+            RegistryKey reg = Registry.CurrentUser.CreateSubKey("SoftWare\\" + MY_SOFT_NAME);
+            int x = Convert.ToInt32(reg.GetValue("x"));
+            int y = Convert.ToInt32(reg.GetValue("y"));
+
+            if (x != 0 || y != 0)
+            {
+                this.Location = new Point(x, y);//可以转换成 Left 、Top 见 2.
+            }
+            else
+            {
+                this.Left = Screen.GetWorkingArea(this).Width - this.Width;
+                this.Top = 0;
+            }
             initRecordAndId(null);
             // 读卡器初始化
             cvrInit();
-            //lb_files.Items.AddRange(getFiles().ToArray());
-            // 空间与数据绑定
+            // 控件与数据绑定
             tb_name.DataBindings.Add("Text", people, "name", false, DataSourceUpdateMode.OnPropertyChanged);
             tb_sex.DataBindings.Add("Text", people, "sex", false, DataSourceUpdateMode.OnPropertyChanged);
             tb_age.DataBindings.Add("Text", people, "age", false, DataSourceUpdateMode.OnPropertyChanged);
@@ -475,6 +506,11 @@ namespace YjkInspectClient
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            RegistryKey reg1 = Registry.CurrentUser;
+            RegistryKey reg2 = reg1.CreateSubKey("SoftWare\\"+ MY_SOFT_NAME);
+            reg2.SetValue("x", this.Location.X);
+            reg2.SetValue("y", this.Location.Y);
+
             if (!isClose)
             {
                 try
@@ -486,6 +522,7 @@ namespace YjkInspectClient
                     MessageBox.Show(ex.ToString());
                 }
             }
+            notifyIcon1.Dispose();
         }
 
         /// <summary>
@@ -526,6 +563,9 @@ namespace YjkInspectClient
                         string idPath = "id.txt";
                         WriteFile(idPath, DateTime.Now.ToString("yy-MM-dd") + "," + Convert.ToString(serialId), false);
                         break;
+                    case TYPE_SEARCH_ALL:
+                        searchAllRecord(msg);
+                        break;
                     default:
                         break;
                 }
@@ -545,6 +585,7 @@ namespace YjkInspectClient
         {
             string historyPath = HISTORY_DIR + "/" + DateTime.Now.ToString("yy-MM-dd") + HISTORY_SUFFIX;
             WriteFile(historyPath, toSavePeople.ToString(), true);
+            toSavePeople.clearInfo();
         }
 
         /// <summary>
@@ -597,13 +638,20 @@ namespace YjkInspectClient
             tb_search.Enabled = !isVisible;
             btn_search.Enabled = !isVisible;
             btn_add.Enabled = !isVisible;
+
+            if (isVisible)
+            {
+                this.WindowState = FormWindowState.Normal;
+                this.Activate();
+            }
         }
 
         private void searchAllRecord(string condition)
         {
             toolStripStatusLabel2.Text = "正在查找";
-            SetListItem(SearchAllPeople(condition));
-            toolStripStatusLabel2.Text = "查找结束";
+            List<PeopleInfo> searcheResult = SearchAllPeople(condition);
+            SetListItem(searcheResult);
+            toolStripStatusLabel2.Text = "查找结束 找到" + searcheResult.Count + "条结果";
         }
 
         //任务thread--非定时--定时任务单独处理
@@ -643,7 +691,8 @@ namespace YjkInspectClient
         {
             if (e.Modifiers == Keys.Control && e.KeyCode == Keys.F)
             {
-                searchAllRecord(tb_search.Text);
+                onevent(tb_search.Text, TYPE_SEARCH_ALL);
+                //searchAllRecord(tb_search.Text);
             }
         }
 
@@ -775,6 +824,15 @@ namespace YjkInspectClient
             this.Visible = true;
             this.WindowState = FormWindowState.Normal;
             this.Activate();
+        }
+
+        private void tb_serial_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            // 如果输入的不是数字键，也不是回车键、Backspace键，则取消该输入
+            if (!(Char.IsNumber(e.KeyChar)) && e.KeyChar != (char)13 && e.KeyChar != (char)8)
+            {
+                e.Handled = true;
+            }
         }
 
         public int GetAgeByBirthdate(DateTime birthdate)
